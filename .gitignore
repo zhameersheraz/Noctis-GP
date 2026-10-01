@@ -11,6 +11,12 @@ node_modules/
 # Test artefacts from the browser playtest
 playtest/
 
+# Intermediate frames from tools/capture-clean.py; only the final banner source
+# and the selected screenshots are committed.
+docs/banner-source.png
+docs/race-clean.png
+docs/_banner.html
+
 # Python bytecode from the verification scripts
 __pycache__/
 *.py[cod]

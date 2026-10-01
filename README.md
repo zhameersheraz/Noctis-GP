@@ -1,5 +1,15 @@
 # NOCTIS GP
 
+### ▶ Play it live: **https://zhameersheraz.github.io/Noctis-GP/**
+
+[![Play](https://img.shields.io/badge/Play%20now-9fd4ff?style=for-the-badge&labelColor=060b14)](https://zhameersheraz.github.io/Noctis-GP/)
+[![Three.js](https://img.shields.io/badge/Three.js-r150%2B-000000?style=flat-square&logo=three.js&logoColor=white)](https://threejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-8f7864?style=flat-square)](LICENSE)
+[![Built by zham](https://img.shields.io/badge/built%20by-zham-9fd4ff?style=flat-square&labelColor=060b14)](https://github.com/zhameersheraz)
+
+![NOCTIS GP](docs/banner.png)
+
 A lunar night grand prix in the browser. Eight maglev open-wheelers, three laps
 of the 8.88 km Serenitatis circuit, power-ups, and a low sun raking across a
 procedurally sculpted Mare-style landscape.
@@ -8,7 +18,18 @@ Built by **zham**. Built with **Three.js + TypeScript + Vite**. No model, textur
 or audio assets: the cars, the terrain, the sky, the Earth and the entire
 soundtrack are all generated at runtime.
 
----
+## Screenshots
+
+Every image in this README is a real frame captured from the deployed site on a
+GPU, not a generated picture. The hero banner is one of those frames with the
+overlay UI stripped out and a title block laid over it; the body shots are
+untouched.
+
+| Menu | Race |
+| --- | --- |
+| ![Menu](docs/menu.png) | ![Race](docs/race.png) |
+
+![Results](docs/results.png)
 
 ## Run it
 
@@ -34,7 +55,7 @@ git init
 git add .
 git commit -m "NOCTIS GP - lunar night grand prix"
 git branch -M main
-git remote add origin https://github.com/<you>/<repo>.git
+git remote add origin https://github.com/zhameersheraz/Noctis-GP.git
 git push -u origin main
 ```
 
@@ -47,7 +68,7 @@ that deploys with no further input.
 Your game will be live at:
 
 ```
-https://<you>.github.io/<repo>/
+https://zhameersheraz.github.io/Noctis-GP/
 ```
 
 First run takes a minute or two while GitHub provisions Pages. Re-running it
