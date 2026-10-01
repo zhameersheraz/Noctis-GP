@@ -58,3 +58,11 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Let the action create the Pages site on its first run. Without
+          # this the very first deployment fails with "Get Pages site failed",
+          # because deploy-pages only publishes to an existing site and the
+          # repo does not have one until the first successful run creates it.
+          # This means a fresh clone of this repo needs no manual
+          # Settings -> Pages step at all.
+          enablement: true
