@@ -1,0 +1,34 @@
+{
+  "name": "noctis-gp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NOCTIS GP - a lunar night grand prix built with Three.js and TypeScript",
+  "author": "zham",
+  "license": "MIT",
+  "homepage": "https://github.com/zhameersheraz/noctis-gp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zhameersheraz/noctis-gp.git"
+  },
+  "keywords": ["threejs", "webgl", "racing", "game", "typescript", "vite", "lunar"],
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "verify": "tsx tools/validate.ts",
+    "verify:race": "tsx tools/race-sim.ts",
+    "playtest": "python tools/playtest.py"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "@types/three": "^0.180.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.14"
+  }
+}
