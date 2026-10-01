@@ -19,6 +19,7 @@
     "preview": "vite preview",
     "verify": "tsx tools/validate.ts",
     "verify:race": "tsx tools/race-sim.ts",
+    "verify:pages": "python tools/pages-check.py",
     "playtest": "python tools/playtest.py"
   },
   "dependencies": {

@@ -173,10 +173,11 @@ This project ships with three verification layers. All of them run the *real*
 shipped code, not a re-implementation.
 
 ```bash
-npm run typecheck     # tsc --noEmit, strict
-npm run verify        # circuit geometry
-npm run verify:race   # headless full-race simulation
-python tools/playtest.py   # real browser, real Chrome (after npm run build)
+npm run typecheck      # tsc --noEmit, strict
+npm run verify         # circuit geometry
+npm run verify:race    # headless full-race simulation
+npm run verify:pages   # boots the build from a GitHub Pages style subpath
+npm run playtest       # real browser, real Chrome (after npm run build)
 ```
 
 ### `npm run verify` — circuit geometry
@@ -194,6 +195,13 @@ power-up field, and asserts that a full three-lap race is completable: every
 car takes the flag, nobody goes off, lap times are plausible and consistent,
 the field finishes together, the ramp is actually jumped, attract mode is
 stable, and restarting reproduces the grid.
+
+### `npm run verify:pages` — deployment check
+
+Serves the build one directory down and loads it the way GitHub Pages serves a
+project repo, then asserts the bundle resolves, the stylesheet actually
+applied, the scene renders and the console stays clean. A relative-path build
+is easy to assume and easy to get wrong; this checks it.
 
 ### `python tools/playtest.py` — browser
 
