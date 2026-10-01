@@ -59,10 +59,10 @@ jobs:
         id: deployment
         uses: actions/deploy-pages@v4
         with:
-          # Let the action create the Pages site on its first run. Without
-          # this the very first deployment fails with "Get Pages site failed",
-          # because deploy-pages only publishes to an existing site and the
-          # repo does not have one until the first successful run creates it.
-          # This means a fresh clone of this repo needs no manual
-          # Settings -> Pages step at all.
+          # Best effort: asks the action to create the Pages site itself.
+          # Note that on a user-owned repo this is NOT sufficient on a brand
+          # new repository - the first run still fails with "Get Pages site
+          # failed" because GITHUB_TOKEN cannot create the site. The owner has
+          # to switch it on once: Settings -> Pages -> Build and deployment
+          # -> Source: GitHub Actions. Every later push deploys unattended.
           enablement: true

@@ -38,10 +38,13 @@ git remote add origin https://github.com/<you>/<repo>.git
 git push -u origin main
 ```
 
-Then in the repo: **Settings → Pages → Source: GitHub Actions**. The workflow in
-`.github/workflows/deploy.yml` runs on every push to `main` and publishes
-`dist/`; it typechecks and runs the circuit verifier first, so a broken commit
-never reaches Pages. Your game will be live at:
+Then in the repo: **Settings → Pages → Build and deployment → Source: GitHub
+Actions**. This one-time toggle is required: GitHub will not let the Actions
+token create a Pages site on a brand new user repository, so the very first
+run always reports `Get Pages site failed` until you flip it. Every push after
+that deploys with no further input.
+
+Your game will be live at:
 
 ```
 https://<you>.github.io/<repo>/
