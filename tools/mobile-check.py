@@ -141,6 +141,43 @@ with serve(DIST) as URL, sync_playwright() as pw:
     check("touch detected", page.evaluate("() => window.NOCTIS.touch.supported"), "navigator reports touch")
     check("html.has-touch set", page.evaluate("() => document.documentElement.classList.contains('has-touch')"), "class applied")
 
+    # Inspiration credit: present and visible on the front screen, and gone
+    # once racing, so it never sits over the HUD.
+    # The credit fades in over 0.5 s. On a CPU rasteriser the animation clock
+    # barely ticks, so wait for the transition rather than sampling it
+    # mid-flight - a value near zero here means the compositor is stalled,
+    # not that the element is broken.
+    try:
+        page.wait_for_function(
+            "() => parseFloat(getComputedStyle(document.querySelector('.attrib')).opacity) > 0.5",
+            timeout=30_000,
+            polling=300,
+        )
+        faded_in = True
+    except Exception:
+        faded_in = False
+    attrib = page.evaluate(
+        """() => {
+        const el = document.querySelector('.attrib');
+        if (!el) return { missing: true };
+        const r = el.getBoundingClientRect();
+        return {
+            text: el.textContent.trim(),
+            shown: el.classList.contains('show'),
+            opacity: parseFloat(getComputedStyle(el).opacity),
+            inView: r.right <= innerWidth && r.bottom <= innerHeight,
+            rect: { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width), h: Math.round(r.height) },
+            vp: { w: innerWidth, h: innerHeight },
+            href: el.querySelector('a')?.href ?? null,
+        };
+    }"""
+    )
+    check(
+        "inspiration credit shown on the front screen",
+        (not attrib.get("missing")) and attrib["shown"] and faded_in and attrib["inView"],
+        f"text={attrib.get('text', 'MISSING')!r} opacity={attrib.get('opacity'):.2f} rect={attrib.get('rect')}",
+    )
+
     # --- menu must be usable with no keyboard ---
     before = page.locator(".screen-main.active").count()
     page.tap(".screen-main .arc-line >> nth=0")
@@ -148,6 +185,11 @@ with serve(DIST) as URL, sync_playwright() as pw:
     started = page.evaluate("() => window.NOCTIS.director.state")
     check("menu is tappable (no keyboard needed)", started in ("countdown", "race"), f"state {started}, main screen was {before}")
     check("HUD visible in race", page.evaluate("() => getComputedStyle(document.querySelector('.hud-layer')).visibility") == "visible", "visible")
+    check(
+        "inspiration credit hidden while racing",
+        not page.evaluate("() => document.querySelector('.attrib').classList.contains('show')"),
+        "not over the HUD",
+    )
 
     page.evaluate("() => window.NOCTIS.stepSim(400)")
     page.wait_for_function("() => window.NOCTIS.director.state === 'race'", timeout=60_000, polling=300)
@@ -155,6 +197,26 @@ with serve(DIST) as URL, sync_playwright() as pw:
 
     shown = page.evaluate("() => getComputedStyle(document.querySelector('.touch-layer')).display")
     check("touch controls shown while racing", shown == "block", f"display: {shown}")
+
+    # The minimap is easy to ship broken and hard to notice: it is a small
+    # faint outline in the corner. Assert it actually has ink on it, rather
+    # than just existing in the DOM.
+    mm = page.evaluate(
+        """() => {
+        const c = document.querySelector('[data-hud=minimap]');
+        const r = c.getBoundingClientRect();
+        const ctx = c.getContext('2d');
+        const d = ctx.getImageData(0, 0, c.width, c.height).data;
+        let lit = 0;
+        for (let i = 3; i < d.length; i += 4) if (d[i] > 24) lit++;
+        return { w: Math.round(r.width), h: Math.round(r.height), lit, total: d.length / 4 };
+    }"""
+    )
+    check(
+        "minimap actually renders the circuit",
+        mm["lit"] > mm["total"] * 0.01,
+        f"{mm['lit']}/{mm['total']} pixels drawn in a {mm['w']}x{mm['h']} box",
+    )
 
     # Every control must be big enough for a thumb and inside the viewport.
     geometry = page.evaluate(

@@ -235,6 +235,34 @@ body {
   white-space: nowrap;
 }
 
+/* Inspiration credit. Only on the front screen, and deliberately quieter than
+   the author line - it is attribution, not a call to action. */
+.attrib {
+  position: absolute;
+  left: 4vw;
+  top: 94.2vh;
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(226, 238, 250, 0.26);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.attrib.show {
+  opacity: 1;
+}
+.attrib a {
+  color: rgba(226, 238, 250, 0.42);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(226, 238, 250, 0.2);
+  pointer-events: auto;
+}
+.attrib a:hover {
+  color: var(--acc);
+}
+
 /* Telemetry tape on the right edge */
 .telemetry {
   position: absolute;

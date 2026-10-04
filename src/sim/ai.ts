@@ -32,10 +32,28 @@ export class AIController {
   private recoverTimer = 0;
   private passSide = 1;
 
+  /**
+   * Catch-up multiplier, set by the race director from the gap to the player.
+   * Smoothed here rather than applied raw, so a rival does not visibly change
+   * pace every time it crosses the line.
+   */
+  private bias = 1;
+  private biasTarget = 1;
+
   constructor(car: CarSim, opts: { skill?: number; boldness?: number } = {}) {
     this.car = car;
     this.skill = opts.skill ?? 0.96;
     this.boldness = opts.boldness ?? 0.94;
+  }
+
+  /** 1 = drive at normal pace, < 1 = ease off, > 1 = press on. */
+  setCatchUp(bias: number): void {
+    this.biasTarget = clamp(bias, 0.8, 1.06);
+  }
+
+  /** Diagnostics only. */
+  debugBias(): number {
+    return this.bias;
   }
 
   computeInput(env: SimEnv, rivals: CarSim[]): DriveInput {
@@ -43,6 +61,10 @@ export class AIController {
     const track = env.track;
     const sp = car.speed;
     const input: DriveInput = { throttle: 0, brake: 0, steer: 0, handbrake: false, boost: false };
+
+    this.bias += (this.biasTarget - this.bias) * 0.02;
+    const skill = this.skill * this.bias;
+    const bold = this.boldness * this.bias;
 
     // ---- recovery from being stuck or spun -------------------------------
     if (car.stuckTimer > 1.6) this.recoverTimer = 1.2;
@@ -75,8 +97,8 @@ export class AIController {
     // banking: a steeply banked corner really can be taken faster.
     const bankBonus = 1 + Math.abs(Math.tan(f1.bank)) * 0.55;
     const aLat = (GRAVITY + MAGLEV * sp * sp) * 1.18 * bankBonus * 0.85;
-    const vCorner = curv > 1e-4 ? Math.sqrt((aLat * this.boldness) / curv) : 999;
-    let vTarget = Math.min(87 * this.skill, vCorner);
+    const vCorner = curv > 1e-4 ? Math.sqrt((aLat * bold) / curv) : 999;
+    let vTarget = Math.min(87 * skill, vCorner);
 
     // ---- traffic ----------------------------------------------------------
     let ahead: CarSim | null = null;

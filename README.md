@@ -48,6 +48,40 @@ actually report touch, so they never cover the HUD on desktop.
 
 Portrait works too — you just get a nudge to turn the device sideways.
 
+## Catch-up instead of a difficulty menu
+
+There is no Easy / Medium / Hard. In an arcade racer a difficulty setting is
+the wrong lever: the thing that strands a new player is not that the AI is
+quick, it is that the pack disappears over the horizon and there is nothing
+left to race. Slowing every rival does not stop you losing to a banana, and it
+is a decision you have to make before you have driven once.
+
+So rivals adjust their pace from their gap to you instead — leaders ease off
+slightly, cars behind press on. Invisible, no menu, helps a beginner without
+punishing an expert.
+
+Measured by the race verifier, player driving at 88% of normal pace:
+
+| | worst gap to the leader |
+| --- | --- |
+| catch-up off | 2011 m |
+| catch-up on | **692 m** |
+
+The easing is deliberately stronger (16%) than the pushing (5%), and only ever
+applies to cars *ahead* of you — so a car in front can still win, and a player
+doing well gets no help at all.
+
+## Credits
+
+- **Built by [zham](https://github.com/zhameersheraz).**
+- The arc-dial menu, letterbox framing, instrument-cluster HUD, attract-loop
+  camera and maglev handling model are inspired by
+  [NOCTIS GP](https://nrjx43j36adhu.ok.kimi.link). Thank you.
+- Everything else here — the circuit, terrain, AI, physics implementation and
+  verification harness — is original to this repo.
+- Three.js, Vite, TypeScript. No other runtime dependencies and no asset files
+  of any kind.
+
 ## Run it
 
 ```bash

@@ -28,6 +28,23 @@ const FIXED_DT = 1 / 120;
 const MAX_SUBSTEPS = 6;
 
 /**
+ * Catch-up tuning.
+ *
+ * A raw difficulty setting is the wrong tool for an arcade racer: the thing
+ * that strands a new player is not that the AI is quick, it is that the pack
+ * disappears over the horizon and there is nothing left to race. So instead of
+ * making everyone slower, rivals close and open the gap by a few percent based
+ * on where they are relative to the player.
+ *
+ * Deliberately asymmetric. Easing (10%) is stronger than pushing (3%), which
+ * means a struggling player is helped more than a dominant one is punished,
+ * and a car ahead of you can still win the race.
+ */
+const CATCHUP_RANGE = 700; // metres of gap before the effect is at full strength
+const CATCHUP_EASE = 0.16;
+const CATCHUP_PUSH = 0.05;
+
+/**
  * How a car is built. The browser passes a factory that also creates the mesh,
  * shield and name tag; the headless verifier passes nothing and gets bare
  * simulation objects. This is the seam that keeps the rules render-agnostic.
@@ -91,6 +108,9 @@ export class RaceDirector {
    * the full three laps, rather than only the ones ahead of the player.
    */
   classifyOnPlayerFinish = true;
+
+  /** Rival catch-up. Disabled by the verifier to measure its effect. */
+  catchUp = true;
 
   private readonly carFactory: CarFactory;
 
@@ -367,6 +387,7 @@ export class RaceDirector {
   private wasBoosting = false;
 
   private physicsSubstep(dt: number): void {
+    this.updateCatchUp();
     for (const c of this.cars) {
       let input: DriveInput;
       if (c === this.player && !this.env.autopilot) {
@@ -402,6 +423,28 @@ export class RaceDirector {
         c.lastS = c.s;
         this.recomputeOrder();
       }
+    }
+  }
+
+  /**
+   * Give every rival a small pace adjustment from its gap to the player.
+   *
+   * Computed on arc distance, not raw coordinates, so a rival a lap behind is
+   * correctly treated as "behind" rather than "ahead and far away".
+   */
+  private updateCatchUp(): void {
+    if (!this.catchUp) return;
+    const p = this.player;
+    const L = this.env.track.length;
+    for (const c of this.cars) {
+      if (c === p || c.finished) continue;
+      const ai = c.ai as AIController | null;
+      if (!ai) continue;
+      let gap = c.totalDist - p.totalDist;
+      if (gap > L / 2) gap -= L;
+      if (gap < -L / 2) gap += L;
+      const t = Math.min(Math.abs(gap) / CATCHUP_RANGE, 1);
+      ai.setCatchUp(gap > 0 ? 1 - CATCHUP_EASE * t : 1 + CATCHUP_PUSH * t);
     }
   }
 

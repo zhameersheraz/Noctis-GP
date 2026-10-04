@@ -423,6 +423,12 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
   credit.textContent = `NOCTIS GP — BUILT BY ${AUTHOR}`;
   menuLayer.appendChild(credit);
 
+  // Inspiration credit, shown on the front screen only.
+  const attrib = mk('div', 'attrib');
+  attrib.innerHTML =
+    'Visual design inspired by <a href="https://nrjx43j36adhu.ok.kimi.link" target="_blank" rel="noopener noreferrer">NOCTIS&nbsp;GP</a>';
+  menuLayer.appendChild(attrib);
+
   // ---- HUD --------------------------------------------------------------
   const hud = mk('div', 'hud-layer');
   hud.innerHTML = `
@@ -702,6 +708,7 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
 
     if (name === 'none') {
       for (const s of Object.values(screenEls)) s.classList.remove('active');
+      attrib.classList.remove('show');
       hud.classList.remove('hidden');
       hudEls.hints.classList.remove('faded');
       if (hintsTimer !== null) clearTimeout(hintsTimer);
@@ -709,6 +716,7 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
     } else {
       if (hintsTimer !== null) clearTimeout(hintsTimer);
       hudEls.hints.classList.remove('faded');
+      attrib.classList.toggle('show', name === 'main');
       wmSub.textContent = screens[name].sub ?? '';
       footer.textContent = screens[name].footer ?? '';
       for (const [key, el] of Object.entries(screenEls)) {
@@ -962,35 +970,52 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
     };
   }
 
+  /**
+   * Render the circuit outline once into an offscreen canvas, then blit it
+   * each frame under the car dots.
+   *
+   * The guard here used to be `if (!mmTransform)` - but mmTransform is only
+   * assigned by buildTransform, on the very next line. So this returned
+   * immediately, the outline was never drawn, mmTransform stayed null, and
+   * setMinimap then bailed out before drawing the cars either. The minimap
+   * rendered nothing at all, for the entire life of the project.
+   */
   function cacheTrack(track: [number, number][]): void {
-    if (!mmTransform || !trackCtx) return;
+    if (!trackCtx || !track.length) return;
     buildTransform(track);
+    const tf = mmTransform;
+    if (!tf) return;
     const c = trackCtx;
     c.clearRect(0, 0, trackCanvas.width, trackCanvas.height);
     c.lineJoin = 'round';
     c.lineCap = 'round';
-    c.strokeStyle = 'rgba(226,238,250,0.34)';
-    c.lineWidth = 2 * dpr;
+    // Dark casing under the line so the circuit reads over bright regolith.
+    c.strokeStyle = 'rgba(4, 8, 16, 0.55)';
+    c.lineWidth = 5 * dpr;
     c.beginPath();
     track.forEach(([x, z], i) => {
-      const px = mmTransform!.px(x);
-      const py = mmTransform!.pz(z);
+      const px = tf.px(x);
+      const py = tf.pz(z);
       if (i === 0) c.moveTo(px, py);
       else c.lineTo(px, py);
     });
     c.closePath(); // it is a circuit
     c.stroke();
-    // Start/finish tick.
+    c.strokeStyle = 'rgba(226,238,250,0.5)';
+    c.lineWidth = 2 * dpr;
+    c.stroke();
+
+    // Start/finish tick, drawn square across the road.
     const a = track[0];
     const b = track[1] ?? track[0];
-    const ax = mmTransform.px(a[0]);
-    const ay = mmTransform.pz(a[1]);
-    const bx = mmTransform.px(b[0]);
-    const by = mmTransform.pz(b[1]);
+    const ax = tf.px(a[0]);
+    const ay = tf.pz(a[1]);
+    const bx = tf.px(b[0]);
+    const by = tf.pz(b[1]);
     const ang = Math.atan2(by - ay, bx - ax) + Math.PI / 2;
     const len = 7 * dpr;
-    c.strokeStyle = 'rgba(159, 212, 255, 0.9)';
-    c.lineWidth = 2 * dpr;
+    c.strokeStyle = 'rgba(159, 212, 255, 0.95)';
+    c.lineWidth = 2.5 * dpr;
     c.beginPath();
     c.moveTo(ax + Math.cos(ang) * len, ay + Math.sin(ang) * len);
     c.lineTo(ax - Math.cos(ang) * len, ay - Math.sin(ang) * len);
@@ -1008,26 +1033,34 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
     }
     mmCtx.clearRect(0, 0, mmCanvas.width, mmCanvas.height);
     if (trackCanvas.width) mmCtx.drawImage(trackCanvas, 0, 0);
-    if (!mmTransform) return;
+    const tf = mmTransform;
+    if (!tf) return;
+
+    // Rivals first, so the player marker always sits on top of the pack.
     for (const car of cars) {
-      const x = mmTransform.px(car.x);
-      const y = mmTransform.pz(car.z);
-      if (car.isPlayer) {
-        mmCtx.beginPath();
-        mmCtx.strokeStyle = 'rgba(159, 212, 255, 0.55)';
-        mmCtx.lineWidth = 1.5 * dpr;
-        mmCtx.arc(x, y, 6 * dpr, 0, Math.PI * 2);
-        mmCtx.stroke();
-        mmCtx.beginPath();
-        mmCtx.fillStyle = '#9fd4ff';
-        mmCtx.arc(x, y, 3 * dpr, 0, Math.PI * 2);
-        mmCtx.fill();
-      } else {
-        mmCtx.beginPath();
-        mmCtx.fillStyle = car.color || '#eef5fc';
-        mmCtx.arc(x, y, 2.6 * dpr, 0, Math.PI * 2);
-        mmCtx.fill();
-      }
+      if (car.isPlayer) continue;
+      mmCtx.beginPath();
+      mmCtx.fillStyle = car.color || '#eef5fc';
+      mmCtx.arc(tf.px(car.x), tf.pz(car.z), 2.6 * dpr, 0, Math.PI * 2);
+      mmCtx.fill();
+    }
+    const me = cars.find((c) => c.isPlayer);
+    if (me) {
+      const x = tf.px(me.x);
+      const y = tf.pz(me.z);
+      mmCtx.beginPath();
+      mmCtx.strokeStyle = 'rgba(159, 212, 255, 0.6)';
+      mmCtx.lineWidth = 1.5 * dpr;
+      mmCtx.arc(x, y, 6.5 * dpr, 0, Math.PI * 2);
+      mmCtx.stroke();
+      mmCtx.beginPath();
+      mmCtx.fillStyle = '#9fd4ff';
+      mmCtx.moveTo(x, y - 5 * dpr);
+      mmCtx.lineTo(x + 5 * dpr, y);
+      mmCtx.lineTo(x, y + 5 * dpr);
+      mmCtx.lineTo(x - 5 * dpr, y);
+      mmCtx.closePath();
+      mmCtx.fill();
     }
   }
 
