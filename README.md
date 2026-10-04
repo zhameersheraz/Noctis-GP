@@ -75,8 +75,11 @@ doing well gets no help at all.
 
 - **Built by [zham](https://github.com/zhameersheraz).**
 - The arc-dial menu, letterbox framing, instrument-cluster HUD, attract-loop
-  camera and maglev handling model are inspired by
-  [NOCTIS GP](https://nrjx43j36adhu.ok.kimi.link). Thank you.
+  camera and maglev handling model follow
+  [NOCTIS GP](https://nrjx43j36adhu.ok.kimi.link). That started out as a
+  Kimi AI-generated template, so there is no individual author to credit —
+  the link is there so the lineage of the design is clear rather than
+  mysterious.
 - Everything else here — the circuit, terrain, AI, physics implementation and
   verification harness — is original to this repo.
 - Three.js, Vite, TypeScript. No other runtime dependencies and no asset files

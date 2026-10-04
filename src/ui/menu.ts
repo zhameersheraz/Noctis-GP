@@ -423,10 +423,12 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
   credit.textContent = `NOCTIS GP — BUILT BY ${AUTHOR}`;
   menuLayer.appendChild(credit);
 
-  // Inspiration credit, shown on the front screen only.
+  // Inspiration credit, shown on the front screen only. The source was a
+  // Kimi AI-generated template, so there is no individual to name - the link
+  // documents the design lineage instead.
   const attrib = mk('div', 'attrib');
   attrib.innerHTML =
-    'Visual design inspired by <a href="https://nrjx43j36adhu.ok.kimi.link" target="_blank" rel="noopener noreferrer">NOCTIS&nbsp;GP</a>';
+    'Visual design inspired by <a href="https://nrjx43j36adhu.ok.kimi.link" target="_blank" rel="noopener noreferrer">NOCTIS&nbsp;GP</a> (AI template)';
   menuLayer.appendChild(attrib);
 
   // ---- HUD --------------------------------------------------------------
