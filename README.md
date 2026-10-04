@@ -31,6 +31,23 @@ untouched.
 
 ![Results](docs/results.png)
 
+## Plays on a phone
+
+There is no keyboard required. Touch devices get on-screen controls — steering
+on the left, throttle/brake/handbrake on the right, boost, power-up and pause
+along the top — and the menu becomes a thumb-sized toolbar instead of the
+desktop arc dial.
+
+![Mobile](docs/mobile.png)
+
+Real multi-touch: steering while holding the throttle is the one thing a racer
+does constantly, so each button captures its own pointer and lifting one thumb
+never cancels the others. Tapping the power-up fires it once even if the press
+starts and ends between two frames. The controls only appear on devices that
+actually report touch, so they never cover the HUD on desktop.
+
+Portrait works too — you just get a nudge to turn the device sideways.
+
 ## Run it
 
 ```bash
@@ -201,6 +218,7 @@ npm run typecheck      # tsc --noEmit, strict
 npm run verify         # circuit geometry
 npm run verify:race    # headless full-race simulation
 npm run verify:pages   # boots the build from a GitHub Pages style subpath
+npm run verify:mobile  # emulated phone: multi-touch, menus, touch targets
 npm run playtest       # real browser, real Chrome (after npm run build)
 ```
 
@@ -226,6 +244,16 @@ Serves the build one directory down and loads it the way GitHub Pages serves a
 project repo, then asserts the bundle resolves, the stylesheet actually
 applied, the scene renders and the console stays clean. A relative-path build
 is easy to assume and easy to get wrong; this checks it.
+
+### `npm run verify:mobile` — touch controls
+
+Emulates a phone and drives the game with real dispatched touch events, then
+asserts the things that only break on a touchscreen: that both a steering press
+and a throttle press register at the same time, that lifting one thumb leaves
+the other held, that every control clears the 44 px touch target and sits
+inside the viewport, that a sub-frame tap still fires, that the on-screen pause
+works, and that the desktop build shows no touch controls at all and still
+drives from the keyboard.
 
 ### `python tools/playtest.py` — browser
 

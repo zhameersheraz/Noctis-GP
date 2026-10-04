@@ -29,6 +29,7 @@ import { ChaseCam, CinematicCam } from './render/cameras';
 import { Dust } from './render/dust';
 import { makeCarMesh, makeNameTag } from './render/carMesh';
 import { createMenu } from './ui/menu';
+import { createTouchControls } from './ui/touch';
 import type { Livery } from './core/liveries';
 
 const SETTINGS_KEY = 'noctis-settings';
@@ -247,8 +248,33 @@ async function boot(): Promise<void> {
     input.steer = clamp(steerAnalog, -1, 1);
     input.handbrake = !!keys.Space;
     input.boost = !!(keys.ShiftLeft || keys.ShiftRight);
-    return input;
+    // Touch is merged on top, never instead: a player with a keyboard and a
+    // touchscreen can use both at once.
+    return touch.applyTo(input);
   }
+
+  // ---- touch controls -----------------------------------------------------
+  // Owns its own DOM and knows nothing about the game. It only reports which
+  // controls are held, which is why the same code path works for mouse, pen
+  // and finger.
+  const touch = createTouchControls({
+    onPause: () => {
+      if (director.state === 'race' || director.state === 'countdown') {
+        director.pause();
+        menu.showScreen('pause');
+      } else if (director.state === 'paused') {
+        director.resume();
+        menu.showScreen('none');
+      }
+    },
+  });
+
+  // Portrait phones get a nudge rather than a blocker; the game still runs.
+  const uiRoot = document.getElementById('ui') ?? document.body;
+  const rotateHint = document.createElement('div');
+  rotateHint.className = 'rotate-hint';
+  rotateHint.textContent = 'Turn your device sideways for more road';
+  uiRoot.appendChild(rotateHint);
 
   // ---- resize -------------------------------------------------------------
   window.addEventListener('resize', () => world.resize(window.innerWidth, window.innerHeight));
@@ -262,11 +288,21 @@ async function boot(): Promise<void> {
    * game, not a shortcut. It exists because on a CPU rasteriser a single
    * frame can take seconds, which makes real-time keyboard testing impossible.
    */
+  /**
+   * Edge-triggered use-item request, shared by the render loop and stepSim.
+   *
+   * Defined once because the two call sites had already drifted: the loop
+   * learned about touch and stepSim did not, which meant an automated touch
+   * test drove the car but could not make it fire a power-up.
+   */
+  const itemRequested = (): boolean =>
+    !!(keys.KeyQ || keys.KeyE) || touch.consumeItemTap();
+
   function stepSim(steps = 1, dt = 1 / 60): void {
     for (let i = 0; i < steps; i++) {
       const racing = director.state === 'race' || director.state === 'countdown';
       director.playerInput = racing ? readInput(dt) : { throttle: 0, brake: 0, steer: 0, handbrake: false, boost: false };
-      director.onItemRequested = racing ? () => !!(keys.KeyQ || keys.KeyE) : null;
+      director.onItemRequested = racing ? itemRequested : null;
       director.update(dt);
     }
   }
@@ -286,6 +322,7 @@ async function boot(): Promise<void> {
       THREE,
       stepSim,
       keys,
+      touch,
       /**
        * Teleport the chase camera onto the car. The camera is damped, so
        * after a simulation fast-forward it would otherwise still be catching
@@ -312,7 +349,9 @@ async function boot(): Promise<void> {
 
     const racing = director.state === 'race' || director.state === 'countdown';
     director.playerInput = racing ? readInput(dt) : { throttle: 0, brake: 0, steer: 0, handbrake: false, boost: false };
-    director.onItemRequested = racing ? () => !!(keys.KeyQ || keys.KeyE) : null;
+    // Edge triggered in the director, so this reports the instant a use-item
+    // input appears - a key press or a latched touch tap.
+    director.onItemRequested = racing ? itemRequested : null;
 
     director.update(dt);
     sky.update(dt, elapsed);
@@ -327,7 +366,11 @@ async function boot(): Promise<void> {
           c.tag.material.opacity = 0;
         } else {
           const d = c.mesh ? c.mesh.position.distanceTo(world.camera.position) : 9999;
-          (c.tag.material as THREE.SpriteMaterial).opacity = c === director.player ? 0 : clamp01(1 - (d - 110) / 340) * 0.95;
+          // Sprites ignore depth, so a distant car's tag would otherwise float
+          // over the HUD as a stray glyph. Fade them out much sooner.
+          const near = touch.supported ? 40 : 110;
+          const span = touch.supported ? 90 : 340;
+          (c.tag.material as THREE.SpriteMaterial).opacity = c === director.player ? 0 : clamp01(1 - (d - near) / span) * 0.95;
         }
       }
     }
@@ -385,6 +428,10 @@ async function boot(): Promise<void> {
       item: p.item,
       standings: director.hudStandings(),
     });
+    // Keep the on-screen buttons honest about what is usable right now.
+    touch.setBoost(p.boost);
+    touch.setItem(p.item);
+    touch.setPaused(false);
     if (minimapTrack) {
       menu.setMinimap({
         track: minimapTrack,

@@ -326,7 +326,14 @@ body {
   font-family: inherit;
   cursor: pointer;
   pointer-events: auto;
+  /* manipulation kills the 300 ms double-tap wait, so a tap feels immediate
+     on a touchscreen. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: transform 0.3s var(--ease-out);
+}
+.arc-item:active .item-label {
+  color: var(--snow);
 }
 .arc-item:focus {
   outline: none;
@@ -890,7 +897,157 @@ body {
   visibility: hidden !important;
 }
 
-/* Short viewports: drop the least important chrome rather than overlap it. */
+/* ============================================================
+   Touch controls
+
+   Hidden unless the device actually reports touch, so a desktop browser
+   never shows them. Only visible while racing (#ui.playing), because that
+   is the only time they mean anything.
+
+   Sizes use min() against both viewport axes so the buttons stay thumb-sized
+   on a 800x360 phone landscape and do not balloon on a tablet.
+   ============================================================ */
+.touch-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  display: none;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: none;
+}
+html.has-touch #ui.playing .touch-layer {
+  display: block;
+}
+
+.tpad,
+.ttop {
+  position: absolute;
+  display: flex;
+  gap: clamp(8px, 1.6vmin, 18px);
+  pointer-events: none;
+}
+.tpad > *,
+.ttop > * {
+  pointer-events: auto;
+}
+
+.tpad--left {
+  left: max(14px, env(safe-area-inset-left));
+  bottom: max(14px, env(safe-area-inset-bottom));
+}
+.tpad--right {
+  right: max(14px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  align-items: flex-end;
+}
+.ttop {
+  right: max(14px, env(safe-area-inset-right));
+  top: max(14px, env(safe-area-inset-top));
+  align-items: center;
+}
+
+.tbtn {
+  --size: clamp(56px, 13vmin, 108px);
+  width: var(--size);
+  height: var(--size);
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  border: 1px solid rgba(226, 238, 250, 0.3);
+  background: rgba(8, 13, 22, 0.42);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  color: rgba(238, 245, 252, 0.92);
+  font-family: var(--font);
+  font-size: calc(var(--size) * 0.4);
+  line-height: 1;
+  /* Stops the browser scrolling, double-tap zooming or selecting on press. */
+  touch-action: none;
+  transition: background 0.1s ease, transform 0.1s ease, opacity 0.15s ease;
+}
+.tbtn.is-down {
+  background: rgba(159, 212, 255, 0.34);
+  border-color: rgba(159, 212, 255, 0.85);
+  transform: scale(0.94);
+}
+.tbtn:disabled {
+  opacity: 0.3;
+}
+
+/* Throttle is the button you hold most, so it gets the extra size. */
+.tbtn--go {
+  --size: clamp(74px, 17vmin, 136px);
+  border-color: rgba(159, 212, 255, 0.6);
+  background: rgba(159, 212, 255, 0.16);
+}
+.tbtn--boost {
+  border-color: rgba(159, 212, 255, 0.55);
+}
+.tbtn--boost.is-empty {
+  opacity: 0.3;
+}
+.tbtn--item.is-ready {
+  border-color: var(--acc);
+  background: rgba(159, 212, 255, 0.3);
+  animation: itemReady 1.1s ease-in-out infinite;
+}
+@keyframes itemReady {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(159, 212, 255, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(159, 212, 255, 0);
+  }
+}
+/* Pause and handbrake are secondary, but the 44px minimum touch target is not
+   negotiable: a 40px button is a mis-tap waiting to happen, and a mis-tap on
+   pause drops you out of the race. */
+.tbtn--pause {
+  --size: clamp(48px, 8vmin, 64px);
+  font-size: calc(var(--size) * 0.3);
+}
+.tbtn--hand {
+  --size: clamp(48px, 9vmin, 72px);
+  font-size: calc(var(--size) * 0.3);
+}
+
+.tbtn__glyph {
+  pointer-events: none;
+}
+
+/* Portrait phones: the circuit needs width, so nudge rather than block. */
+.rotate-hint {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 45;
+  display: none;
+  padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(6, 11, 20, 0.9);
+  border-top: 1px solid rgba(226, 238, 250, 0.14);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dim);
+  text-align: center;
+}
+html.has-touch #ui.playing .rotate-hint {
+  display: none;
+}
+@media (orientation: portrait) and (hover: none) and (pointer: coarse) {
+  html.has-touch #ui.playing .rotate-hint {
+    display: block;
+  }
+}
+
+/* Short viewports: drop the least important chrome rather than overlap it.
+   The narrower breakpoints that follow are deliberately more specific and
+   come later, so they win wherever the two overlap. */
 @media (max-height: 620px) {
   .rows {
     top: 17vh;
@@ -912,3 +1069,185 @@ body {
     font-size: 10px;
   }
 }
+
+/* ============================================================
+   Touch-device menu
+
+   The arc dial is a desktop flourish and it does not survive a phone.
+   Two problems, both measured:
+
+     1. Each .arc-item is a 0x0 anchor whose visible label is an absolutely
+        positioned child. A real finger can still hit the label, but the
+        button itself has no hit area, so anything targeting the button
+        (assistive tech, automation) finds nothing there.
+     2. On a 390 px phone the dial radius is ~179 px and the items are 10
+        degrees apart, which puts their centres 31 px apart. That is below
+        any usable touch target.
+
+   So on touch/narrow screens the same buttons, labels and values are
+   re-flowed into a bottom toolbar. The inline transforms the dial writes
+   per item are cleared with !important, because an inline style otherwise
+   beats any stylesheet rule.
+   ============================================================ */
+@media (max-width: 620px), (hover: none) and (pointer: coarse) {
+  .needle {
+    display: none;
+  }
+
+  .dial {
+    transform: none !important;
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: auto;
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 max(12px, env(safe-area-inset-left));
+  }
+  .dial::before {
+    content: none;
+  }
+  .tick {
+    display: none;
+  }
+
+  .arc-item {
+    transform: none !important;
+    position: relative;
+    left: auto;
+    top: auto;
+    flex: 1 1 26vw;
+    min-width: min(30vw, 150px);
+    max-width: 46vw;
+    height: 58px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(226, 238, 250, 0.22);
+    border-radius: 12px;
+    background: rgba(8, 13, 22, 0.44);
+  }
+  .arc-item.selected {
+    border-color: var(--acc);
+    background: rgba(159, 212, 255, 0.18);
+  }
+
+  .arc-line {
+    position: static;
+    right: auto;
+    top: auto;
+    translate: none;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85em;
+    padding: 0;
+  }
+  .item-label,
+  .item-val {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+  }
+
+  /* Everything that used to sit at the bottom now has to clear the toolbar. */
+  .readout {
+    left: 5vw;
+    right: 5vw;
+    top: 17vh;
+    bottom: auto;
+  }  .ro-num {
+    font-size: clamp(38px, 13vw, 66px);
+  }
+  .rows {
+    left: 5vw;
+    right: 5vw;
+    top: 30vh;
+    max-width: none;
+    min-width: 0;
+  }
+  .row {
+    gap: 2em;
+  }
+  .row .k,
+  .row .v {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+  .results-body {
+    left: 5vw;
+    right: 5vw;
+    width: auto;
+    top: 14vh;
+  }
+  .footer,
+  .credit {
+    top: auto;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 76px);
+  }
+  .telemetry {
+    display: none;
+  }
+  .hud-standings {
+    min-width: 0;
+    font-size: 9px;
+    left: 3vw;
+    top: 4vh;
+  }
+  .minimap {
+    width: 78px;
+    height: 78px;
+  }
+  /* The bottom-right corner belongs to throttle/brake/handbrake, so the
+     speed and its boost meter move up and left of that stack rather than
+     being drawn underneath it. */
+  .hud-speed {
+    right: 4vw;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 152px);
+  }
+  .hud-speed-val {
+    font-size: clamp(30px, 9vw, 46px);
+  }
+  .hud-boost {
+    width: min(34vw, 170px);
+  }
+  /* Minimap sits above the steering pair instead of behind it. */
+  .hud-bottomleft {
+    left: 3vw;
+    bottom: calc(max(14px, env(safe-area-inset-bottom)) + 80px);
+  }
+  .hud-hints {
+    display: none;
+  }
+}
+
+/* Very short landscape (phone on its side): drop the least useful chrome. */
+@media (max-height: 430px) {
+  .rows {
+    top: 15vh;
+    gap: 0.6vh;
+  }
+  .note {
+    display: none;
+  }
+  .hud-hints {
+    display: none;
+  }
+  .readout {
+    bottom: 24vh;
+  }
+  .hud-bottomleft {
+    bottom: 15vh;
+  }
+  .minimap {
+    width: 76px;
+    height: 76px;
+  }
+}
+

@@ -20,6 +20,7 @@
     "verify": "tsx tools/validate.ts",
     "verify:race": "tsx tools/race-sim.ts",
     "verify:pages": "python tools/pages-check.py",
+    "verify:mobile": "python tools/mobile-check.py",
     "playtest": "python tools/playtest.py",
     "artwork": "python tools/capture-artwork.py && python tools/capture-clean.py && python tools/make-banner.py"
   },

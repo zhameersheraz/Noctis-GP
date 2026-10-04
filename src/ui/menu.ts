@@ -233,7 +233,18 @@ export function createMenu(hooks: MenuHooks = {}): Menu {
       sub: 'PIT STOP',
       footer: '↑↓ SELECT   ENTER CONFIRM   ESC RESUME',
       items: [
-        { label: 'RESUME', action: () => fire('onResume'), ro: () => ({ v: fmtTime(lastHud.clock), l: 'RACE TIME' }) },
+        {
+          label: 'RESUME',
+          // The menu has to dismiss itself, not just resume the director.
+          // The Escape key path in main.ts hides the screen explicitly, so
+          // without this a player who taps RESUME (or clicks it with a mouse)
+          // gets a live race running behind a still-visible pause overlay.
+          action: () => {
+            fire('onResume');
+            showScreen('none');
+          },
+          ro: () => ({ v: fmtTime(lastHud.clock), l: 'RACE TIME' }),
+        },
         { label: 'RESTART RACE', action: () => fire('onRestart'), ro: () => ({ v: pad2(lastHud.lapsTotal || 3), l: 'LAPS' }) },
         { label: 'CONTROLS', action: () => openScreen('controls', 'pause'), ro: () => ({ v: '07', l: 'MAPPED INPUTS' }) },
         { label: 'SETTINGS', action: () => openScreen('settings', 'pause'), ro: () => ({ v: settings.quality, l: 'RENDER QUALITY' }) },
